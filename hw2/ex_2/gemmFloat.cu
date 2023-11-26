@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <cmath>
 
-#define DataType double
+#define DataType float
 
 // Compute C = A * B
 __global__ void gemm(DataType *A, DataType *B, DataType *C, int numARows,
@@ -137,10 +137,9 @@ int main(int argc, char **argv) {
   
   for (int i = 0; i < numCRows; i++) {
     for (int j = 0; j < numCColumns; j++) {
-      //if (hostC[i * numCColumns + j] - resultRef[i * numCColumns + j] != 0) {
       double diff = hostC[i * numCColumns + j] - resultRef[i * numCColumns + j];
-      if (fabs(diff) > 1e-5) {
-        fprintf(stderr, "Result verification failed at element (%d, %d)\n", i, j);
+      if (fabs(diff) > 1e-2) { //CHANGED
+        fprintf(stderr, "Result verification failed at element (%d, %d)\n!", i, j);
         printf("Diff: %.6f \n", diff);
       }
     }
