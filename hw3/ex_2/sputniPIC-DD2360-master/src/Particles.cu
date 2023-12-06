@@ -233,7 +233,7 @@ int mover_PC(struct particles* part, struct EMfield* field, struct grid* grd, st
 } // end of the mover
 
 
-__global__ void mover_PC_gpu_kernel(struct particles* part, struct EMfield* field, struct grid* grd, struct parameters* param) {
+__global__ void mover_PC_gpu_kernel(struct particles** part, struct EMfield* field, struct grid* grd, struct parameters* param) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (i < part->nop) {
@@ -385,13 +385,13 @@ __global__ void mover_PC_gpu_kernel(struct particles* part, struct EMfield* fiel
 }
 
 
-int mover_PC_GPU(struct particles* part, struct EMfield* field, struct grid* grd, struct parameters* param) {
+int mover_PC_gpu(struct particles** part, struct EMfield* field, struct grid* grd, struct parameters* param) {
 
     //@@ Allocate GPU memory
     particles *d_part;
-    cudaMalloc(&d_part, sizeof(particles));
+    //cudaMalloc(&d_part, sizeof(particles));
     
-    int max_number_of_particles = part->npmax;
+    int max_number_of_particles = (*part)->npmax;
     
     cudaMalloc(&(d_part->x), sizeof(FPpart) * max_number_of_particles);
     cudaMalloc(&(d_part->y), sizeof(FPpart) * max_number_of_particles);
@@ -405,17 +405,17 @@ int mover_PC_GPU(struct particles* part, struct EMfield* field, struct grid* grd
     //@@ Copy memory to the GPU
     cudaMemcpy(d_part, part, sizeof(particles), cudaMemcpyHostToDevice);
     
-    cudaMemcpy(d_part->x, part->x, sizeof(FPpart) * max_number_of_particles, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_part->y, part->y, sizeof(FPpart) * max_number_of_particles, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_part->z, part->z, sizeof(FPpart) * max_number_of_particles, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_part->u, part->u, sizeof(FPpart) * max_number_of_particles, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_part->v, part->v, sizeof(FPpart) * max_number_of_particles, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_part->w, part->w, sizeof(FPpart) * max_number_of_particles, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_part->q, part->q, sizeof(FPinterp) * max_number_of_particles, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_part->x, (*part)->x, sizeof(FPpart) * max_number_of_particles, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_part->y, (*part)->y, sizeof(FPpart) * max_number_of_particles, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_part->z, (*part)->z, sizeof(FPpart) * max_number_of_particles, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_part->u, (*part)->u, sizeof(FPpart) * max_number_of_particles, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_part->v, (*part)->v, sizeof(FPpart) * max_number_of_particles, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_part->w, (*part)->w, sizeof(FPpart) * max_number_of_particles, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_part->q, (*part)->q, sizeof(FPinterp) * max_number_of_particles, cudaMemcpyHostToDevice);
     
     //@@ Initialize the grid and block dimensions
     int TPB = 256;
-    int BLOCKS = (part->nop  + TPB - 1) / TPB;
+    int BLOCKS = ((*part)->nop  + TPB - 1) / TPB;
 
     dim3 blockDim(TPB, 1, 1);
     dim3 gridDim(BLOCKS, 1, 1);
@@ -425,14 +425,20 @@ int mover_PC_GPU(struct particles* part, struct EMfield* field, struct grid* grd
 
     cudaDeviceSynchronize();
 
+    cudaError_t cudaStatus = cudaGetLastError();
+    if (cudaStatus != cudaSuccess) {
+      fprintf(stderr, "CUDA error: %s\n", cudaGetErrorString(cudaStatus));
+    }
+
     //@@ Copy the GPU memory back to the CPU
-    cudaMemcpy(part->x, d_part->x, sizeof(FPpart) * max_number_of_particles, cudaMemcpyDeviceToHost);
-    cudaMemcpy(part->y, d_part->y, sizeof(FPpart) * max_number_of_particles, cudaMemcpyDeviceToHost);
-    cudaMemcpy(part->z, d_part->z, sizeof(FPpart) * max_number_of_particles, cudaMemcpyDeviceToHost);
-    cudaMemcpy(part->u, d_part->u, sizeof(FPpart) * max_number_of_particles, cudaMemcpyDeviceToHost);
-    cudaMemcpy(part->v, d_part->v, sizeof(FPpart) * max_number_of_particles, cudaMemcpyDeviceToHost);
-    cudaMemcpy(part->w, d_part->w, sizeof(FPpart) * max_number_of_particles, cudaMemcpyDeviceToHost);
-    cudaMemcpy(part->q, d_part->q, sizeof(FPinterp) * max_number_of_particles, cudaMemcpyDeviceToHost);
+    cudaMemcpy((*part)->x, d_part->x, sizeof(FPpart) * max_number_of_particles, cudaMemcpyDeviceToHost);
+    cudaMemcpy((*part)->y, d_part->y, sizeof(FPpart) * max_number_of_particles, cudaMemcpyDeviceToHost);
+    cudaMemcpy((*part)->z, d_part->z, sizeof(FPpart) * max_number_of_particles, cudaMemcpyDeviceToHost);
+    cudaMemcpy((*part)->u, d_part->u, sizeof(FPpart) * max_number_of_particles, cudaMemcpyDeviceToHost);
+    cudaMemcpy((*part)->v, d_part->v, sizeof(FPpart) * max_number_of_particles, cudaMemcpyDeviceToHost);
+    cudaMemcpy((*part)->w, d_part->w, sizeof(FPpart) * max_number_of_particles, cudaMemcpyDeviceToHost);
+    cudaMemcpy((*part)->q, d_part->q, sizeof(FPinterp) * max_number_of_particles, cudaMemcpyDeviceToHost);
+    //cudaMemcpy((*part), d_part, sizeof(particles), cudaMemcpyDeviceToHost);
 
     //@@ Free the GPU memory
     cudaFree(d_part->x);
