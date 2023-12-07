@@ -95,13 +95,13 @@ int main(int argc, char **argv){
         
 
         for (int is=0; is < param.ns; is++) {
-          //#ifdef __CUDACC__
-            //mover_PC_gpu(&part[is], &field, &grd, &param);
+          #ifdef __CUDACC__
+            mover_PC_gpu(&part[is], &field, &grd, &param);
 
-        //#else
+        #else
             mover_PC(&part[is],&field,&grd,&param);
 
-        //#endif
+        #endif
         }
         eMover += (cpuSecond() - iMover); // stop timer for mover
         
