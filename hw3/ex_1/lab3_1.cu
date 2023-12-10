@@ -12,10 +12,10 @@ __global__ void histogram_kernel(unsigned int *input, unsigned int *bins,
                                  unsigned int num_bins) {
   extern __shared__ unsigned int shared_bins[];
 
-  unsigned int tid = threadIdx.x;
+  unsigned int idx = threadIdx.x;
   unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
 
-  for (unsigned int j = tid; j < num_bins; j += blockDim.x) {
+  for (unsigned int j = idx; j < num_bins; j += blockDim.x) {
       shared_bins[j] = 0;
   }
   __syncthreads();
@@ -26,7 +26,7 @@ __global__ void histogram_kernel(unsigned int *input, unsigned int *bins,
   __syncthreads();
 
   // global memory
-  for (unsigned int j = tid; j < num_bins; j += blockDim.x) {
+  for (unsigned int j = idx; j < num_bins; j += blockDim.x) {
       atomicAdd(&bins[j], shared_bins[j]);
   }
 }
