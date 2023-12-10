@@ -4,6 +4,8 @@
 #include <random>
 
 #define NUM_BINS 4096
+#define TPB 1024
+
 
 __global__ void histogram_kernel(unsigned int *input, unsigned int *bins,
                                  unsigned int num_elements,
@@ -96,7 +98,7 @@ int main(int argc, char **argv) {
   cudaMemset(deviceBins, 0, NUM_BINS * sizeof(unsigned int));
 
   //@@ Initialize the grid and block dimensions here
-  dim3 blockDim(256);
+  dim3 blockDim(TPB);
   dim3 gridDim((inputLength + blockDim.x - 1) / blockDim.x);
 
   //@@ Launch the GPU Kernel here
@@ -114,7 +116,7 @@ int main(int argc, char **argv) {
   }
 
   //@@ Initialize the second grid and block dimensions here
-  dim3 blockDim2(256);
+  dim3 blockDim2(TPB);
   dim3 gridDim2((NUM_BINS + blockDim2.x - 1) / blockDim2.x);
 
   //@@ Launch the second GPU Kernel here
