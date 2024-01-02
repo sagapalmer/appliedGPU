@@ -8,8 +8,8 @@
       "args": [],
       "stopAtEntry": false,
       "externalConsole": true,
-      "cwd": "c:/Users/sagap/OneDrive/Dokument/GitHub/appliedGPU/hw3",
-      "program": "c:/Users/sagap/OneDrive/Dokument/GitHub/appliedGPU/hw3/build/Debug/outDebug",
+      "cwd": "c:/Users/sagap/AppliedGPU/GitHub/appliedGPU/hw3/ex_2/sputniPIC-DD2360-master/src",
+      "program": "c:/Users/sagap/AppliedGPU/GitHub/appliedGPU/hw3/ex_2/sputniPIC-DD2360-master/src/build/Debug/outDebug",
       "MIMode": "gdb",
       "miDebuggerPath": "gdb",
       "setupCommands": [
