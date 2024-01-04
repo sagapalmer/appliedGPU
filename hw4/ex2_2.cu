@@ -27,15 +27,16 @@ double getElapsedTime(double startTime) {
 
 
 int main(int argc, char **argv) {
-  
+
   int inputLength;
+  int S_seg;
 
   //CPU
   DataType *hostInput1;
   DataType *hostInput2;
   DataType *hostOutput;
   DataType *resultRef;
-  
+
   //GPU
   DataType *deviceInput1;
   DataType *deviceInput2;
@@ -43,16 +44,17 @@ int main(int argc, char **argv) {
 
   //@@ Insert code below to read in inputLength from args
   inputLength = atoi(argv[1]); //convert char to int
+  S_seg = atoi(argv[2]);
 
   printf("The input length is %d\n", inputLength);
-  
+
   //@@ Insert code below to allocate Host memory for input and output
   hostInput1 = (DataType *)malloc(inputLength * sizeof(DataType));
   hostInput2 = (DataType *)malloc(inputLength * sizeof(DataType));
   hostOutput = (DataType *)malloc(inputLength * sizeof(DataType));
   resultRef = (DataType *)malloc(inputLength * sizeof(DataType));
 
-  
+
   //@@ Insert code below to initialize hostInput1 and hostInput2 to random numbers, and create reference result in CPU
   double startTimeCPU = getTime();
   for (int i = 0; i < inputLength; i++) {
@@ -61,31 +63,30 @@ int main(int argc, char **argv) {
         resultRef[i] = hostInput1[i] + hostInput2[i];
   }
   double elapsedTimeCPU = getElapsedTime(startTimeCPU);
-  
 
-  
-  int S_seg = 4;
+
+
   cudaStream_t streams[S_seg];
   for (int i = 0; i < S_seg; i++) {
     cudaStreamCreate(&streams[i]);
   }
 
   //@@ Initialize the 1D grid and block dimensions here
-  
+
   int streamSize = inputLength / S_seg;
   int streamBytes = streamSize * sizeof(DataType);
-  
+
   int TPB = 128;
   int gridSize = (streamSize + TPB - 1) / TPB;
-  
-  
+
+
   //@@ Insert code below to allocate GPU memory here
   double startTimeGPU = getTime();
   cudaMalloc((void **)&deviceInput1, inputLength * sizeof(DataType));
   cudaMalloc((void **)&deviceInput2, inputLength * sizeof(DataType));
   cudaMalloc((void **)&deviceOutput, inputLength * sizeof(DataType));
-  
-  
+
+
   //@@ Launch the GPU Kernel here
   for (int i = 0; i < S_seg; i++) {
     int offset = i * streamSize;
