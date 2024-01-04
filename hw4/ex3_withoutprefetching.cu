@@ -47,16 +47,6 @@ void cputimer_stop(const char* info){
   printf("Timing - %s. \t\tElasped %.0f microseconds \n", info, time);
 }
 
-struct timeval spmv_start, spmv_end;
-void spmvtimer_start(){
-  gettimeofday(&spmv_start, 0);
-}
-double spmvtimer_stop(){
-  gettimeofday(&spmv_end, 0);
-  double time = (spmv_end.tv_sec - spmv_start.tv_sec) + (spmv_end.tv_usec - spmv_start.tv_usec)* 1.e-6;
-  return time;
-}
-
 // Initialize the sparse matrix needed for the heat time step
 void matrixInit(double* A, int* ArowPtr, int* AcolIndx, int dimX,
     double alpha) {
@@ -208,20 +198,16 @@ int main(int argc, char **argv) {
 
   //@@ Insert code to allocate the buffer needed by cuSPARSE
   gpuCheck(cudaMalloc(&buffer, bufferSize));
-  double flop = 0;
-  double execution_time = 0;
+
   // Perform the time step iterations
   for (int it = 0; it < nsteps; ++it) {
     //@@ Insert code to call cusparse api to compute the SMPV (sparse matrix multiplication) for
     //@@ the CSR matrix using cuSPARSE. This calculation corresponds to:
     //@@ tmp = 1 * A * temp + 0 * tmp
-    spmvtimer_start();
     cusparseCheck(cusparseSpMV(cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE,
                                 &one, Adescriptor, tempDense, &zero, tmpDense, CUDA_R_64F, 
                                 CUSPARSE_SPMV_ALG_DEFAULT, buffer));
-    cudaDeviceSynchronize();
-    flop += 2 * nzv;
-    execution_time += spmvtimer_stop();
+
     //@@ Insert code to call cublas api to compute the axpy routine using cuBLAS.
     //@@ This calculation corresponds to: temp = alpha * tmp + temp
     cublasCheck(cublasDaxpy(cublasHandle, dimX, &alpha, tmp, one, temp, one));
@@ -237,7 +223,6 @@ int main(int argc, char **argv) {
       break;
   }
 
-  
   // Calculate the exact solution using thrust
   thrust::device_ptr<double> thrustPtr(tmp);
   thrust::sequence(thrustPtr, thrustPtr + dimX, tempLeft,
@@ -249,25 +234,19 @@ int main(int argc, char **argv) {
   //@@ and the approximation
   //@@ This calculation corresponds to: tmp = -temp + tmp
   cublasCheck(cublasDaxpy(cublasHandle, dimX, &one, temp, 1, tmp, 1));
-  //cudaDeviceSynchronize();
+  cudaDeviceSynchronize();
   //@@ Insert the code to call cublas api to compute the norm of the absolute error
   //@@ This calculation corresponds to: || tmp ||
-  cublasCheck(cublasDnrm2(cublasHandle, dimX, tmp, 1, &norm));
-  //cudaDeviceSynchronize();
+  cublasCheck(cublasDnrm2(cublasHandle, dimX, tmp, one, &norm));
+  cudaDeviceSynchronize();
   error = norm;
   //@@ Insert the code to call cublas api to compute the norm of temp
   //@@ This calculation corresponds to: || temp ||
   cublasCheck(cublasDnrm2(cublasHandle, dimX, temp, 1, &norm));
-  //cudaDeviceSynchronize();
+  cudaDeviceSynchronize();
   // Calculate the relative error
   error = error / norm;
   printf("The relative error of the approximation is %f\n", error);
-
-  double FLOPS = flop/execution_time;
-  printf("Total flops: %.0f\n", flop);
-  printf("Total Execution time for SpMV: %f\n", execution_time);
-  printf("FLOPS: %.1f\n", FLOPS);
-
 
   //@@ Insert the code to destroy the mat descriptor
   cusparseCheck(cusparseDestroySpMat(Adescriptor));
