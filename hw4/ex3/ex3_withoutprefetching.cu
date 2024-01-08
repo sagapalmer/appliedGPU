@@ -130,21 +130,21 @@ int main(int argc, char **argv) {
   cputimer_stop("Allocating device memory");
 
   // Check if concurrentAccessQ is non zero in order to prefetch memory
-  if (concurrentAccessQ) {
-    cputimer_start();
+  // if (concurrentAccessQ) {
+  //   cputimer_start();
 
-    //@@ Insert code to prefetch in Unified Memory asynchronously to CPU
-    //cudaMemPrefetchAsync(data, size, cudaCpuDeviceId, stream);
+  //   //@@ Insert code to prefetch in Unified Memory asynchronously to CPU
+  //   //cudaMemPrefetchAsync(data, size, cudaCpuDeviceId, stream);
 
-    gpuCheck(cudaMemPrefetchAsync(temp, dimX * sizeof(double), cudaCpuDeviceId, 0));
-    gpuCheck(cudaMemPrefetchAsync(tmp, dimX * sizeof(double), cudaCpuDeviceId, 0));
+  //   gpuCheck(cudaMemPrefetchAsync(temp, dimX * sizeof(double), cudaCpuDeviceId, 0));
+  //   gpuCheck(cudaMemPrefetchAsync(tmp, dimX * sizeof(double), cudaCpuDeviceId, 0));
 
-    gpuCheck(cudaMemPrefetchAsync(ARowPtr, (dimX + 1) * sizeof(int), cudaCpuDeviceId, 0));
-    gpuCheck(cudaMemPrefetchAsync(AColIndx, nzv * sizeof(int), cudaCpuDeviceId, 0));
-    gpuCheck(cudaMemPrefetchAsync(A, nzv * sizeof(double), cudaCpuDeviceId, 0));
+  //   gpuCheck(cudaMemPrefetchAsync(ARowPtr, (dimX + 1) * sizeof(int), cudaCpuDeviceId, 0));
+  //   gpuCheck(cudaMemPrefetchAsync(AColIndx, nzv * sizeof(int), cudaCpuDeviceId, 0));
+  //   gpuCheck(cudaMemPrefetchAsync(A, nzv * sizeof(double), cudaCpuDeviceId, 0));
 
-    cputimer_stop("Prefetching GPU memory to the host");
-  }
+  //   cputimer_stop("Prefetching GPU memory to the host");
+  // }
 
   // Initialize the sparse matrix
   cputimer_start();
@@ -158,18 +158,18 @@ int main(int argc, char **argv) {
   temp[dimX - 1] = tempRight;
   cputimer_stop("Initializing memory on the host");
 
-  if (concurrentAccessQ) {
-    cputimer_start();
-    //@@ Insert code to prefetch in Unified Memory asynchronously to the GPU
-    gpuCheck(cudaMemPrefetchAsync(temp, dimX * sizeof(double), device, 0));
-    gpuCheck(cudaMemPrefetchAsync(tmp, dimX * sizeof(double), device, 0));
+  // if (concurrentAccessQ) {
+  //   cputimer_start();
+  //   //@@ Insert code to prefetch in Unified Memory asynchronously to the GPU
+  //   gpuCheck(cudaMemPrefetchAsync(temp, dimX * sizeof(double), device, 0));
+  //   gpuCheck(cudaMemPrefetchAsync(tmp, dimX * sizeof(double), device, 0));
 
-    gpuCheck(cudaMemPrefetchAsync(ARowPtr, (dimX + 1) * sizeof(int), device, 0));
-    gpuCheck(cudaMemPrefetchAsync(AColIndx, nzv * sizeof(int), device, 0));
-    gpuCheck(cudaMemPrefetchAsync(A, nzv * sizeof(double), device, 0));
+  //   gpuCheck(cudaMemPrefetchAsync(ARowPtr, (dimX + 1) * sizeof(int), device, 0));
+  //   gpuCheck(cudaMemPrefetchAsync(AColIndx, nzv * sizeof(int), device, 0));
+  //   gpuCheck(cudaMemPrefetchAsync(A, nzv * sizeof(double), device, 0));
 
-    cputimer_stop("Prefetching GPU memory to the device");
-  }
+  //   cputimer_stop("Prefetching GPU memory to the device");
+  // }
 
   //@@ Insert code to create the cuBLAS handle
   cublasCheck(cublasCreate(&cublasHandle));
@@ -234,16 +234,16 @@ int main(int argc, char **argv) {
   //@@ and the approximation
   //@@ This calculation corresponds to: tmp = -temp + tmp
   cublasCheck(cublasDaxpy(cublasHandle, dimX, &one, temp, 1, tmp, 1));
-  cudaDeviceSynchronize();
+  //cudaDeviceSynchronize();
   //@@ Insert the code to call cublas api to compute the norm of the absolute error
   //@@ This calculation corresponds to: || tmp ||
-  cublasCheck(cublasDnrm2(cublasHandle, dimX, tmp, one, &norm));
-  cudaDeviceSynchronize();
+  cublasCheck(cublasDnrm2(cublasHandle, dimX, tmp, 1, &norm));
+  //cudaDeviceSynchronize();
   error = norm;
   //@@ Insert the code to call cublas api to compute the norm of temp
   //@@ This calculation corresponds to: || temp ||
   cublasCheck(cublasDnrm2(cublasHandle, dimX, temp, 1, &norm));
-  cudaDeviceSynchronize();
+  //cudaDeviceSynchronize();
   // Calculate the relative error
   error = error / norm;
   printf("The relative error of the approximation is %f\n", error);
